@@ -1,33 +1,33 @@
-use axum::{routing::{post, get}, Json, Router};
-use std::sync::{Arc, Mutex};
+use axum::{
+    routing::{post, get},
+    Json, Router, extract::State
+};
 
-use crate::engine::OrderBook;
-use crate::models::Order;
-use crate::ws::{WsState, ws_handler};
+use crate::{models::Order, ws::ws_handler, AppState};
 
-pub fn create_routes(
-    orderbook: Arc<Mutex<OrderBook>>,
-    ws_state: WsState,
-) -> Router {
+pub fn create_routes(state: AppState) -> Router {
     Router::new()
         .route("/order", post(create_order))
         .route("/ws", get(ws_handler))
-        .with_state(ws_state)
-        .with_state(orderbook)
+        .with_state(state)
 }
 
 async fn create_order(
-    axum::extract::State(orderbook): axum::extract::State<Arc<Mutex<OrderBook>>>,
-    axum::extract::State(ws_state): axum::extract::State<WsState>,
+    State(state): State<AppState>,
     Json(payload): Json<Order>,
 ) -> Json<String> {
-    let mut ob = orderbook.lock().unwrap();
+
+    let mut ob = state.orderbook.lock().unwrap();
 
     ob.add_order(payload.clone());
-    ob.match_orders();
 
-    let message = format!("New order: {:?}", payload);
-    let _ = ws_state.tx.send(message);
+    // 🔥 Ejecuta matching
+    let trades = ob.match_orders();
+
+    // 🔥 Envía trades por WebSocket
+    for trade in trades {
+        let _ = state.tx.send(trade);
+    }
 
     Json(format!("Order {} processed", payload.id))
 }
