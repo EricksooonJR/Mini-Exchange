@@ -4,26 +4,23 @@ use axum::{
     response::IntoResponse,
 };
 use futures::{StreamExt, SinkExt};
-use tokio::sync::broadcast::{Sender, Receiver};
-
-#[derive(Clone)]
-pub struct WsState {
-    pub tx: Sender<String>,
-}
+use crate::AppState;
 
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
-    State(state): State<WsState>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, state.tx.subscribe()))
 }
 
-async fn handle_socket(mut socket: WebSocket, mut rx: Receiver<String>) {
+async fn handle_socket(
+    mut socket: WebSocket,
+    mut rx: tokio::sync::broadcast::Receiver<String>,
+) {
     println!("Cliente conectado");
 
     loop {
         tokio::select! {
-            // Recibe mensajes del servidor
             msg = rx.recv() => {
                 if let Ok(msg) = msg {
                     if socket.send(Message::Text(msg)).await.is_err() {
@@ -31,11 +28,7 @@ async fn handle_socket(mut socket: WebSocket, mut rx: Receiver<String>) {
                     }
                 }
             }
-
-            // Recibe mensajes del cliente (opcional)
-            Some(Ok(Message::Text(text))) = socket.next() => {
-                println!("Cliente dice: {}", text);
-            }
+            Some(Ok(_)) = socket.next() => {}
         }
     }
 
