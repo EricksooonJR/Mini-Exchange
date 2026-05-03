@@ -21,7 +21,9 @@ impl OrderBook {
         }
     }
 
-    pub fn match_orders(&mut self) {
+    pub fn match_orders(&mut self) -> Vec<String> {
+        let mut trades = vec![];
+
         self.buys.sort_by(|a, b| b.price.partial_cmp(&a.price).unwrap());
         self.sells.sort_by(|a, b| a.price.partial_cmp(&b.price).unwrap());
 
@@ -30,11 +32,13 @@ impl OrderBook {
             let sell = &self.sells[0];
 
             if buy.price >= sell.price {
-                println!(
-                    "Trade executed: {} units at price {}",
-                    buy.quantity.min(sell.quantity),
-                    sell.price
+                let qty = buy.quantity.min(sell.quantity);
+                let trade_msg = format!(
+                    "TRADE -> price: {}, qty: {}",
+                    sell.price, qty
                 );
+
+                trades.push(trade_msg);
 
                 self.buys.remove(0);
                 self.sells.remove(0);
@@ -42,5 +46,7 @@ impl OrderBook {
                 break;
             }
         }
+
+        trades
     }
 }
