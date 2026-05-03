@@ -26,7 +26,6 @@ async fn create_order(
     ob.add_order(payload.clone());
     ob.match_orders();
 
-    // 🔥 AQUÍ está lo importante
     let message = format!("New order: {:?}", payload);
     let _ = ws_state.tx.send(message);
 
