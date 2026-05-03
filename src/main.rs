@@ -22,7 +22,9 @@ async fn main() {
 
     let app = routes::create_routes(orderbook, ws_state);
 
-    let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
+let port = std::env::var("PORT").unwrap_or("3000".to_string());
+
+let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
 
     println!("Server running on http://localhost:3000");
 
