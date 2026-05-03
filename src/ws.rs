@@ -1,8 +1,8 @@
 use axum::{
-    extract::ws::{WebSocket, WebSocketUpgrade, Message},
-    extract::State,
+    extract::{State, WebSocketUpgrade},
     response::IntoResponse,
 };
+use axum::extract::ws::{WebSocket, Message};
 use futures::{StreamExt, SinkExt};
 use crate::AppState;
 
@@ -17,8 +17,6 @@ async fn handle_socket(
     mut socket: WebSocket,
     mut rx: tokio::sync::broadcast::Receiver<String>,
 ) {
-    println!("Cliente conectado");
-
     loop {
         tokio::select! {
             msg = rx.recv() => {
@@ -31,6 +29,4 @@ async fn handle_socket(
             Some(Ok(_)) = socket.next() => {}
         }
     }
-
-    println!("Cliente desconectado");
 }
